@@ -7,9 +7,7 @@ use std::mem;
 use ash::util::*;
 use ash::vk;
 
-use std::{
-    borrow::Cow, cell::RefCell, ops::Drop, os::raw::c_char,
-};
+use std::{borrow::Cow, cell::RefCell, ops::Drop, os::raw::c_char};
 
 use ash::{
     ext::debug_utils,
@@ -215,8 +213,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         base.device
             .bind_buffer_memory(vertex_input_buffer, vertex_input_buffer_memory, 0)
             .unwrap();
-        let mut vertex_spv_file =
-            Cursor::new(&include_bytes!("vert.spv")[..]);
+        let mut vertex_spv_file = Cursor::new(&include_bytes!("vert.spv")[..]);
         let mut frag_spv_file = Cursor::new(&include_bytes!("frag.spv")[..]);
 
         let vertex_code =
@@ -474,7 +471,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
-
 
 // Simple offset_of macro akin to C++ offsetof
 #[macro_export]
