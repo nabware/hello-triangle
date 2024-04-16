@@ -1,5 +1,19 @@
-fn main() {
-    println!("hello");
+use ash::vk;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Load vulkan functions
+    let entry = unsafe { ash::Entry::load()? };
+
+    // Create vulkan instance
+    let create_info = vk::InstanceCreateInfo::default();
+    let instance = unsafe { entry.create_instance(&create_info, None)? };
+
+    // Cleanup
+    unsafe {
+        instance.destroy_instance(None);
+    };
+
+    Ok(())
 }
 
 // use std::default::Default;
