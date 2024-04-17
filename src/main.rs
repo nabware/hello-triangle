@@ -1,15 +1,71 @@
+use std::ffi;
+
 use ash::vk;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load vulkan functions
     let entry = unsafe { ash::Entry::load()? };
 
+    // Define validation layer name
+    #[cfg(debug_assertions)]
+    let validation_layer_name =
+        unsafe { ffi::CStr::from_bytes_with_nul_unchecked(b"VK_LAYER_KHRONOS_validation\0") };
+    
+    // Define layers
+    #[cfg(debug_assertions)]
+    let layer_names = [validation_layer_name.as_ptr()];
+    #[cfg(not(debug_assertions))]
+    let layer_names = [];
+
+    // Define extensions
+    #[cfg(debug_assertions)]
+    let extension_names = [ash::ext::debug_utils::NAME.as_ptr()];
+    #[cfg(not(debug_assertions))]
+    let extension_names = [];
+
     // Create vulkan instance
-    let create_info = vk::InstanceCreateInfo::default();
+    let create_info = vk::InstanceCreateInfo {
+        enabled_layer_count: layer_names.len() as u32,
+        pp_enabled_layer_names: layer_names.as_ptr(),
+        enabled_extension_count: extension_names.len() as u32,
+        pp_enabled_extension_names: extension_names.as_ptr(),
+        ..Default::default()
+    };
     let instance = unsafe { entry.create_instance(&create_info, None)? };
+
+    // Create debug utils messenger
+    #[cfg(debug_assertions)]
+    unsafe extern "system" fn debug_utils_messenger_callback(
+        _message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
+        _message_type: vk::DebugUtilsMessageTypeFlagsEXT,
+        p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT<'_>,
+        _user_data: *mut std::os::raw::c_void,
+    ) -> vk::Bool32 {
+        let callback_data = *p_callback_data;
+        let message = ffi::CStr::from_ptr(callback_data.p_message).to_string_lossy();
+        println!("{message}\n");
+        vk::FALSE
+    }
+    #[cfg(debug_assertions)]
+    let debug_create_info = vk::DebugUtilsMessengerCreateInfoEXT {
+        message_severity: vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
+            | vk::DebugUtilsMessageSeverityFlagsEXT::WARNING,
+        message_type: vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
+            | vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION
+            | vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE,
+        pfn_user_callback: Some(debug_utils_messenger_callback),
+        ..Default::default()
+    };
+    #[cfg(debug_assertions)]
+    let debug_utils_loader = ash::ext::debug_utils::Instance::new(&entry, &instance);
+    #[cfg(debug_assertions)]
+    let debug_call_back =
+        unsafe { debug_utils_loader.create_debug_utils_messenger(&debug_create_info, None)? };
 
     // Cleanup
     unsafe {
+        #[cfg(debug_assertions)]
+        debug_utils_loader.destroy_debug_utils_messenger(debug_call_back, None);
         instance.destroy_instance(None);
     };
 
